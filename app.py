@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-from io import BytesIO
 
 st.set_page_config(page_title="Shop Daily Sales", layout="centered")
 st.title("🛍️ Daily Sales Entry System")
 
-# Initialize sales data
+# Initialize session state for storing sales data
 if "sales_data" not in st.session_state:
     st.session_state["sales_data"] = pd.DataFrame(
         columns=["Product", "Quantity", "Price", "Discount (%)", "Total"]
@@ -30,28 +29,21 @@ with st.form("sales_form", clear_on_submit=True):
             total = quantity * price * (1 - discount / 100)
             new_row = pd.DataFrame([[product, quantity, price, discount, total]],
                                    columns=["Product", "Quantity", "Price", "Discount (%)", "Total"])
-            st.session_state["sales_data"] = pd.concat([st.session_state["sales_data"], new_row], ignore_index=True)
+            st.session_state["sales_data"] = pd.concat(
+                [st.session_state["sales_data"], new_row], ignore_index=True
+            )
             st.success(f"✅ Sale for '{product}' added successfully!")
 
-# ---------- Display Sales ----------
+# ---------- Display Sales Table ----------
 st.subheader("📊 Today's Sales Records")
 if not st.session_state["sales_data"].empty:
     st.dataframe(st.session_state["sales_data"], use_container_width=True)
 
-    # Excel download
-    def to_excel(df):
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Sales')
-        return output.getvalue()
+    total_qty = st.session_state["sales_data"]["Quantity"].sum()
+    total_sales = st.session_state["sales_data"]["Total"].sum()
 
-    excel_data = to_excel(st.session_state["sales_data"])
-    st.download_button(
-        label="📥 Download as Excel",
-        data=excel_data,
-        file_name="daily_sales.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    st.markdown(f"**🧮 Total Quantity Sold:** {total_qty}")
+    st.markdown(f"**💰 Total Sales Amount:** {total_sales:.2f}")
 else:
     st.info("No sales data added yet.")
 
